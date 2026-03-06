@@ -1,0 +1,14 @@
+[project]
+name = "image-compressor"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pillow",
+    "customtkinter",
+]
+
+[dependency-groups]
+dev = [
+    "cairosvg>=2.8.2",
+    "pyinstaller>=6.19.0",
+]
