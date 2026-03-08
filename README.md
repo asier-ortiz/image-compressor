@@ -42,15 +42,15 @@ uv run python app.py
 El ejecutable incluye todo lo necesario (Python, dependencias, código). Se puede distribuir sin instalar nada.
 
 ```bash
-uv run pyinstaller -y --onefile --windowed --name "Compresor de Imagenes" --icon icon.ico --add-data "icon.png:." app.py
+uv run python build.py
 ```
 
 El resultado queda en `dist/`:
 
 | SO | Archivo | Uso |
 |---|---|---|
-| Windows | `Compresor de Imagenes.exe` | Doble clic |
-| macOS | `Compresor de Imagenes.app` | Doble clic |
-| Linux | `Compresor de Imagenes` | `./Compresor\ de\ Imagenes` |
+| Windows | `Compresor de Imágenes.exe` | Doble clic |
+| macOS | `Compresor de Imágenes.app` | Doble clic |
+| Linux | `Compresor de Imágenes` | `./Compresor\ de\ Imágenes` |
 
 > **Nota:** El build debe ejecutarse en cada sistema operativo. No se puede generar el `.exe` de Windows desde macOS o viceversa.
