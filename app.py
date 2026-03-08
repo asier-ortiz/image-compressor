@@ -61,30 +61,45 @@ class Tooltip:
         self._widget = widget
         self._text = text
         self._tooltip_window = None
-        widget.bind("<Enter>", self._show)
+        self._after_id = None
+        widget.bind("<Enter>", self._schedule_show)
         widget.bind("<Leave>", self._hide)
+        widget.bind("<ButtonPress>", self._hide)
 
-    def _show(self, event):
+    def _schedule_show(self, event):
+        self._hide(event)
+        self._after_id = self._widget.after(400, self._show)
+
+    def _show(self):
+        self._after_id = None
+        if not self._widget.winfo_exists():
+            return
         x = self._widget.winfo_rootx() + self._widget.winfo_width() + 5
         y = self._widget.winfo_rooty()
 
-        self._tooltip_window = tw = ctk.CTkToplevel(self._widget)
+        import tkinter as tk
+        self._tooltip_window = tw = tk.Toplevel(self._widget)
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
         tw.attributes("-topmost", True)
+        tw.config(bg="#333333")
 
-        label = ctk.CTkLabel(
+        label = tk.Label(
             tw,
             text=self._text,
-            font=("", 11),
-            fg_color=("gray90", "gray20"),
-            corner_radius=6,
-            padx=10,
-            pady=6,
+            font=("Segoe UI", 9),
+            fg="#ffffff",
+            bg="#333333",
+            padx=8,
+            pady=5,
+            justify="left",
         )
         label.pack()
 
-    def _hide(self, _event):
+    def _hide(self, _event=None):
+        if self._after_id is not None:
+            self._widget.after_cancel(self._after_id)
+            self._after_id = None
         if self._tooltip_window:
             self._tooltip_window.destroy()
             self._tooltip_window = None
@@ -484,6 +499,21 @@ class App(ctk.CTk):
         if self._processing:
             return
 
+        input_path = self.input_var.get().strip()
+        if not input_path:
+            messagebox.showwarning("Aviso", "Selecciona una carpeta de origen.")
+            return
+
+        src_dir = Path(input_path)
+        if not src_dir.is_dir():
+            messagebox.showerror("Error", "La carpeta de origen no existe.")
+            return
+        if not os.access(src_dir, os.R_OK):
+            messagebox.showerror(
+                "Error", "No tienes permisos de lectura en la carpeta de origen."
+            )
+            return
+
         images = self._get_source_images()
         if not images:
             messagebox.showwarning(
@@ -497,7 +527,18 @@ class App(ctk.CTk):
             return
 
         out_dir = Path(output_path)
-        out_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            messagebox.showerror(
+                "Error", "No tienes permisos para crear la carpeta de destino."
+            )
+            return
+        if not os.access(out_dir, os.W_OK):
+            messagebox.showerror(
+                "Error", "No tienes permisos de escritura en la carpeta de destino."
+            )
+            return
 
         quality = self.quality_var.get()
         preserve_metadata = self.metadata_var.get()
