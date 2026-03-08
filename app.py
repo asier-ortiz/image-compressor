@@ -3,16 +3,19 @@
 
 import multiprocessing
 import os
+import platform
+import sys
 import threading
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, ImageTk
 
 VERSION = "1.0.0"
 AUTHOR = "Asier Ortiz"
+BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
 
 IMAGE_EXTENSIONS = {
     ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif",
@@ -181,11 +184,53 @@ class App(ctk.CTk):
         self.title("Compresor de Imágenes")
         self.geometry(WINDOW_SIZE)
         self.resizable(False, False)
+
+        if platform.system() == "Windows":
+            ico_path = BASE_DIR / "icon.ico"
+            if ico_path.exists():
+                self.iconbitmap(str(ico_path))
+                self.after(200, lambda: self._set_win32_icon(str(ico_path)))
+        else:
+            icon_path = BASE_DIR / "icon.png"
+            if icon_path.exists():
+                img = Image.open(icon_path)
+                icons = [ImageTk.PhotoImage(img.resize((s, s), Image.LANCZOS))
+                         for s in (16, 32, 48, 256)]
+                self.iconphoto(False, *icons)
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
         self._processing = False
         self._build_ui()
         self.createcommand("tkAboutDialog", self._show_about)
+
+    def _set_win32_icon(self, ico_path: str):
+        """Set window icon using Win32 API for sharp rendering."""
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32
+        WM_SETICON = 0x0080
+        ICON_SMALL = 0  # 16x16 title bar
+        ICON_BIG = 1    # 32x32+ taskbar, alt-tab
+
+        hwnd = int(self.wm_frame(), 16)
+
+        # LoadImage from file with desired sizes
+        IMAGE_ICON = 1
+        LR_LOADFROMFILE = 0x0010
+        LR_DEFAULTSIZE = 0x0040
+
+        # Small icon (title bar)
+        h_small = user32.LoadImageW(
+            0, ico_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+        if h_small:
+            user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, h_small)
+
+        # Big icon (taskbar, alt-tab)
+        h_big = user32.LoadImageW(
+            0, ico_path, IMAGE_ICON, 48, 48, LR_LOADFROMFILE)
+        if h_big:
+            user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, h_big)
 
     # ── Build UI ───────────────────────────────────────────────────────
 
@@ -401,7 +446,7 @@ class App(ctk.CTk):
         about.transient(self)
         about.grab_set()
 
-        icon_path = Path(__file__).parent / "icon.png"
+        icon_path = BASE_DIR / "icon.png"
         if icon_path.exists():
             icon_img = ctk.CTkImage(Image.open(icon_path), size=(64, 64))
             ctk.CTkLabel(about, image=icon_img, text="").pack(pady=(20, 8))
@@ -640,5 +685,10 @@ class App(ctk.CTk):
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+    if platform.system() == "Windows":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "asierortiz.compresordeimagenes.1"
+        )
     app = App()
     app.mainloop()

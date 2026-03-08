@@ -17,6 +17,7 @@ cmd = [
     "--name", APP_NAME,
     "--icon", ICON,
     "--add-data", f"icon.png{SEPARATOR}.",
+    "--add-data", f"icon.ico{SEPARATOR}.",
     "app.py",
 ]
 
